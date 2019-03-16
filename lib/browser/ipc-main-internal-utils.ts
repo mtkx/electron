@@ -24,14 +24,30 @@ export const handle = function <T extends IPCHandler> (channel: string, handler:
   })
 }
 
+const isWebContentsIdentical = (contents1: Electron.WebContents, contents2: Electron.WebContents) => {
+  if (contents1.isDestroyed() || contents2.isDestroyed()) {
+    return false
+  }
+
+  return contents1.id === contents2.id
+}
+
 let nextId = 0
 
 export function invokeInWebContents<T> (sender: Electron.WebContentsInternal, command: string, ...args: any[]) {
   return new Promise<T>((resolve, reject) => {
     const requestId = ++nextId
-    ipcMainInternal.once(`${command}_RESPONSE_${requestId}`, (
-      _event, error: Electron.SerializedError, result: any
-    ) => {
+    const channel = `${command}_RESPONSE_${requestId}`
+    ipcMainInternal.on(channel, function handler (
+      event, error: Electron.SerializedError, result: any
+    ) {
+      if (!isWebContentsIdentical(sender, event.sender)) {
+        console.error(`Reply to ${command} sent by unexpected WebContents (${event.sender.id})`)
+        return
+      }
+
+      ipcMainInternal.removeListener(channel, handler)
+
       if (error) {
         reject(errorUtils.deserialize(error))
       } else {
