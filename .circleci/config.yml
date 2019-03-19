@@ -444,14 +444,9 @@ step-maybe-cross-arch-snapshot: &step-maybe-cross-arch-snapshot
     name: Generate cross arch snapshot (arm/arm64)
     command: |
       if [ "$TRIGGER_ARM_TEST" == "true" ] && [ -z "$CIRCLE_PR_NUMBER" ]; then
-        cd src
-        if [ "$TARGET_ARCH" == "arm" ]; then
-          export MKSNAPSHOT_PATH="clang_x86_v8_arm"
-        elif [ "$TARGET_ARCH" == "arm64" ]; then
-          export MKSNAPSHOT_PATH="clang_x64_v8_arm64"
-        fi
-        cp "$PWD/out/Default/$MKSNAPSHOT_PATH/mksnapshot" "$PWD/out/Default"
-        cp "$PWD/out/Default/$MKSNAPSHOT_PATH/v8_context_snapshot_generator" "$PWD/out/Default"
+        cd src/out/Default
+        unzip -o mksnapshot.zip
+        cd ../..
         python electron/script/verify-mksnapshot.py --source-root "$PWD" --build-dir out/Default --create-snapshot-only
         mkdir cross-arch-snapshots
         cp out/Default-mksnapshot-test/*.bin cross-arch-snapshots
